@@ -1,4 +1,6 @@
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
+
 
 # --- User Schemas (from before) ---
 
@@ -41,3 +43,30 @@ class TokenData(BaseModel):
     We will just store the user's email.
     """
     email: str | None = None
+class ItineraryRequest(BaseModel):
+    destination: str
+    days: int
+    travel_type: str  # e.g., "relaxing", "adventure", "cultural"
+    budget: str       # e.g., "low", "medium", "high"
+    mood: str         # optional mood like "tired", "excited"
+class ItineraryDay(BaseModel):
+    day: int
+    summary: str
+
+class ItineraryResponse(BaseModel):
+    destination: str
+    plan: list[ItineraryDay]
+class ItinerarySaveRequest(BaseModel):
+    destination: str
+    days: int
+    plan: list  
+
+class ItineraryDB(BaseModel):
+    id: int
+    destination: str
+    days: int
+    plan_json: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

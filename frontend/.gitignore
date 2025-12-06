@@ -1,0 +1,13 @@
+# node / build
+node_modules/
+dist/
+
+# env / keys
+.env
+config.js
+*.sqlite
+travel_app.db
+
+# OS files
+.DS_Store
+Thumbs.db

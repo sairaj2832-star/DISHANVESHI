@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DISHANVESHI — Travel Planner</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">
+        <img id="logoImg" src="logo.png" alt="DISHANVESHI logo">
+        <div>
+          <h1>DISHANVESHI</h1>
+          <div class="muted">Travel Itinerary, Reimagined</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="side-btn active" id="btn-map">Map</button>
+        <button class="side-btn" id="btn-saved">Saved Plans</button>
+        <button class="side-btn" id="btn-helper">Travel Helper</button>
+      </nav>
+
+      <div class="side-section">
+        <div class="muted small">Account</div>
+        <div id="account-area" class="muted">Not signed in</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="greeting">
+          <div class="hello">Hello, <span id="userName">Guest</span>!</div>
+          <div class="search">
+            <input id="destInput" placeholder="Enter destination (e.g. Jaipur)" />
+          </div>
+        </div>
+        <div class="controls">
+          <button class="btn secondary" id="loginBtn">Login</button>
+          <button class="btn primary" id="newItinBtn">Ask AI</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="map-wrap card" id="mapWrap">
+          <div id="map">Map will load here</div>
+        </div>
+
+        <div class="panel">
+          <div class="chatbox card">
+            <div class="chat-header">
+              <div class="title">Travel Planner</div>
+              <div class="hint muted">Use chat or the Ask AI button</div>
+            </div>
+
+            <div class="chat-messages" id="messages"></div>
+
+            <div class="chat-input">
+              <input id="chatText" placeholder="Ask the planner (e.g., '3-day cultural trip to Pune')" />
+              <button id="sendBtn" class="btn primary">Send</button>
+            </div>
+          </div>
+
+          <div class="card" id="savedPanel">
+            <div class="section-title">Saved Itineraries</div>
+            <div id="savedList" class="saved-list"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- config (edit before deploy or use the manual instructions below) -->
+  <script>
+    // Edit these values before pushing to GitHub / Netlify
+    // OR replace this file with a generated config.js during build
+    window.APP_CONFIG = {
+      API_BASE: "https://your-backend.example.com",   // ← replace with your backend URL
+      GOOGLE_MAPS_API_KEY: ""                         // ← optional: add your Google Maps key here
+    };
+  </script>
+
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,12 +1,11 @@
 import os 
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-DATABASE_URL = "sqlite+aiosqlite:///./travel_app.db"  #the url of database which store a file name in a same file named"travel_app.db"
-engine = create_async_engine(DATABASE_URL, echo=True) # created the async engine 
-async_session = async_sessionmaker(
-    bind=engine,
-    expire_on_commit=False,
-)
+# database.py (example)
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./travel_app.db")
+engine = create_async_engine(DATABASE_URL, echo=True, future=True)
+async_session = async_sessionmaker(engine, expire_on_commit=False)
+
 Base = declarative_base()
 async def init_db():
     """

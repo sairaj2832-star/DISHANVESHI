@@ -1,29 +1,38 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-# NEW IMPORT for the login form
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm 
 from contextlib import asynccontextmanager
 from typing import Annotated
-
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
+from schemas import ItineraryRequest, ItineraryResponse
+from fastapi.responses import FileResponse 
+import os 
+from fastapi import Query
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+from security import SECRET_KEY, ALGORITHM
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-# Import all our modules
+
+# Import our modules
 import models
 import CRUD
 import schemas
-import security # NEW: We need the full security module
+import security
+import services 
 from database import init_db, async_session
 
-# --- Lifespan Function (from before) ---
+# --- Lifespan Function ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Server starting up...")
-    print("Initializing database...")
     await init_db() 
-    print("Database is initialized. Tables created (if they didn't exist).")
+    print("Database initialized.")
     yield 
     print("Server shutting down...")
 
-# --- Database Dependency (from before) ---
+# --- Database Dependency ---
 async def get_db():
     db = async_session()
     try:
@@ -35,9 +44,28 @@ AsyncDb = Annotated[AsyncSession, Depends(get_db)]
 
 # --- FastAPI App ---
 app = FastAPI(
-    title="Intelligent Travel Companion API",
+    title="TravelMate API",
     lifespan=lifespan 
 )
+
+# --- CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- Request Models ---
+class LocationSearch(BaseModel):
+    lat: float
+    lng: float
+    type: str 
+
+class AIRequest(BaseModel):
+    mood: str
+    places_list: str
 
 # --- API Endpoints ---
 
@@ -45,49 +73,110 @@ app = FastAPI(
 def read_health():
     return {"status": "ok"}
 
+# --- NEW: SERVE THE FRONTEND (The Magic Part) ---
+@app.get("/")
+async def read_root():
+    # This tells Python: "When someone opens the website, give them the HTML file"
+    file_path = os.path.join(os.path.dirname(__file__), "index.html")
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    return {"error": "index.html not found"}
 
 # --- Auth Endpoints ---
-
 @app.post("/api/auth/register", response_model=schemas.User)
 async def register_user(user: schemas.UserCreate, db: AsyncDb):
     db_user = await CRUD.get_user_by_email(db, email=user.email)
     if db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
-    new_user = await CRUD.create_user(db, user=user)
-    return new_user
+        raise HTTPException(status_code=400, detail="Email already registered")
+    return await CRUD.create_user(db, user=user)
 
-# --- NEW: LOGIN ENDPOINT ---
 @app.post("/api/auth/login", response_model=schemas.Token)
 async def login_for_access_token(
-    # This is new:
-    # FastAPI will automatically get the "username" and "password"
-    # from a form for us.
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncDb
 ):
-    """
-    Logs in a user and returns a JWT access token.
-    
-    Note: The OAuth2 form standard uses "username", 
-    but we will treat it as our "email".
-    """
-    # 1. Get the user from the DB by their email (which is 'form_data.username')
     user = await CRUD.get_user_by_email(db, email=form_data.username)
-    
-    # 2. Check if user exists OR if the password is wrong
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"}, # Standard for login errors
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        
-    # 3. If password is correct, create the JWT "ID Card"
-    access_token_data = {"sub": user.email} # "sub" is a standard name for the token "subject"
-    access_token = security.create_access_token(data=access_token_data)
-    
-    # 4. Return the token
+    access_token = security.create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
+
+# --- TravelMate Endpoints ---
+
+@app.post("/api/places/search")
+async def search_places(search: LocationSearch):
+    query = "restaurant" if search.type == "food" else "hotel"
+    places = await services.get_google_places(search.lat, search.lng, query)
+    return places
+
+@app.post("/api/ai/recommend")
+async def ask_gemini(request: AIRequest):
+    advice = await services.get_ai_recommendation(request.mood, request.places_list)
+    return {"recommendation": advice}
+
+class ItineraryRequest(BaseModel):
+    destination: str
+    days: int
+    travel_type: str
+    budget: str
+    mood: str
+    include_pois: bool = True   # new
+
+@app.post("/api/itinerary", response_model=ItineraryResponse)
+async def generate_user_itinerary(request: ItineraryRequest):
+    plan = await services.generate_itinerary(
+        destination=request.destination,
+        days=request.days,
+        travel_type=request.travel_type,
+        budget=request.budget,
+        mood=request.mood,
+        include_pois=request.include_pois
+    )
+    return {"destination": request.destination, "plan": plan}
+async def get_current_user(db: AsyncDb,token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = await CRUD.get_user_by_email(db, email=email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+@app.post("/api/itinerary/save")
+async def save_itinerary(
+    db: AsyncDb,
+    request: schemas.ItinerarySaveRequest,
+    user = Depends(get_current_user)
+):
+    saved = await CRUD.save_itinerary(
+        db, user_id=user.id,
+        destination=request.destination,
+        days=request.days,
+        plan=request.plan
+    )
+    return {"message": "Itinerary saved", "id": saved.id}
+@app.get("/api/itinerary/my", response_model=list[schemas.ItineraryDB])
+async def get_my_itineraries(db: AsyncDb,user = Depends(get_current_user)):
+    items = await CRUD.get_user_itineraries(db, user.id)
+    return items
+from fastapi.middleware.cors import CORSMiddleware
+
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:8080",
+    "https://your-site.netlify.app",   # add your Netlify domain
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

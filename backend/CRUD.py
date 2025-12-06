@@ -3,6 +3,8 @@ from sqlalchemy.future import select
 import models
 import schemas
 import security
+import json
+from models import Itinerary
 
 async def get_user_by_email(db: AsyncSession, email: str):
     """
@@ -38,3 +40,21 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
     await db.refresh(db_user)
     
     return db_user
+
+async def save_itinerary(db, user_id: int, destination: str, days: int, plan: list):
+    new_itinerary = Itinerary(
+        user_id=user_id,
+        destination=destination,
+        days=days,
+        plan_json=json.dumps(plan)
+    )
+    db.add(new_itinerary)
+    await db.commit()
+    await db.refresh(new_itinerary)
+    return new_itinerary
+
+async def get_user_itineraries(db, user_id: int):
+    result = await db.execute(
+        select(Itinerary).where(Itinerary.user_id == user_id)
+    )
+    return result.scalars().all()
