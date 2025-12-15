@@ -3,7 +3,14 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function startApp() {
-const { API_BASE, GOOGLE_MAPS_API_KEY } = window.APP_CONFIG;
+const API_BASE = window.APP_CONFIG?.API_BASE;
+const GOOGLE_MAPS_API_KEY = window.APP_CONFIG?.GOOGLE_MAPS_API_KEY;
+
+if (!API_BASE) {
+  alert("API_BASE missing. Frontend misconfigured.");
+  throw new Error("API_BASE missing");
+}
+
 
 let token = localStorage.getItem("token");
 let map, markers=[];
@@ -12,8 +19,18 @@ const loader = document.getElementById("loader");
 const auth = document.getElementById("auth");
 const app = document.getElementById("app");
 
-function showLoader(){loader.classList.remove("hidden")}
-function hideLoader(){loader.classList.add("hidden")}
+function showLoader() {
+  if (loader) {
+    loader.classList.remove("hidden");
+  }
+}
+
+function hideLoader() {
+  if (loader) {
+    loader.classList.add("hidden");
+  }
+}
+
 
 function showApp(){
   auth.classList.add("hidden");
