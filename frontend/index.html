@@ -1,82 +1,115 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DISHANVESHI — Travel Planner</title>
+<meta charset="UTF-8" />
+<title>Dishanveshi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- FIXED: Correct relative path -->
-  <link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;font-family:Inter}
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#0f2027,#020b13);
+  color:#e6f7f7;
+}
+.hidden{display:none}
+
+/* AUTH */
+#auth{
+  height:100vh;display:flex;align-items:center;justify-content:center;
+}
+.auth-card{
+  width:360px;padding:30px;
+  background:rgba(15,32,39,.9);
+  backdrop-filter:blur(14px);
+  border-radius:16px;
+  animation:fadeIn .8s ease;
+}
+.auth-card h2{text-align:center;color:#2fdcdc}
+.auth-card input{
+  width:100%;padding:12px;margin:10px 0;
+  border-radius:8px;border:none;
+  background:#06161c;color:white;
+}
+.auth-card button{
+  width:100%;padding:12px;
+  border-radius:10px;border:none;
+  background:linear-gradient(135deg,#2fdcdc,#00b4d8);
+  font-weight:700;cursor:pointer;
+}
+.switch{text-align:center;margin-top:12px;cursor:pointer;color:#8becec}
+
+/* APP */
+#app{height:100vh;display:grid;grid-template-columns:260px 1fr}
+#sidebar{padding:20px;background:rgba(5,20,28,.95)}
+#main{padding:20px;overflow-y:auto}
+
+/* UI */
+.card{
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(12px);
+  border-radius:14px;padding:14px;margin-bottom:12px;
+}
+button{cursor:pointer}
+
+/* LOADER */
+#loader{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.6);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;
+}
+#loader::after{
+  content:"";width:50px;height:50px;
+  border:4px solid #2fdcdc;border-top:4px solid transparent;
+  border-radius:50%;animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1}}
+</style>
 </head>
+
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="logo">
-        <img id="logoImg" src="logo.png" alt="DISHANVESHI logo">
-        <div>
-          <h1>DISHANVESHI</h1>
-          <div class="muted">Travel Itinerary, Reimagined</div>
-        </div>
-      </div>
 
-      <nav class="nav">
-        <button class="side-btn active" id="btn-map">Map</button>
-        <button class="side-btn" id="btn-saved">Saved Plans</button>
-        <button class="side-btn" id="btn-helper">Travel Helper</button>
-      </nav>
+<div id="loader" class="hidden"></div>
 
-      <div class="side-section">
-        <div class="muted small">Account</div>
-        <div id="account-area" class="muted">Not signed in</div>
-      </div>
-    </aside>
-
-    <main class="main">
-      <div class="topbar">
-        <div class="greeting">
-          <div class="hello">Hello, <span id="userName">Guest</span>!</div>
-          <div class="search">
-            <input id="destInput" placeholder="Enter destination (e.g. Jaipur)" />
-          </div>
-        </div>
-        <div class="controls">
-          <button class="btn secondary" id="loginBtn">Login</button>
-          <button class="btn primary" id="newItinBtn">Ask AI</button>
-        </div>
-      </div>
-
-      <div class="content">
-        <div class="map-wrap card" id="mapWrap">
-          <div id="map">Map will load here</div>
-        </div>
-
-        <div class="panel">
-          <div class="chatbox card">
-            <div class="chat-header">
-              <div class="title">Travel Planner</div>
-              <div class="hint muted">Use chat or the Ask AI button</div>
-            </div>
-
-            <div class="chat-messages" id="messages"></div>
-
-            <div class="chat-input">
-              <input id="chatText" placeholder="Ask the planner (e.g., '3-day cultural trip to Pune')" />
-              <button id="sendBtn" class="btn primary">Send</button>
-            </div>
-          </div>
-
-          <div class="card" id="savedPanel">
-            <div class="section-title">Saved Itineraries</div>
-            <div id="savedList" class="saved-list"></div>
-          </div>
-        </div>
-      </div>
-    </main>
+<!-- AUTH -->
+<div id="auth">
+  <div class="auth-card">
+    <h2 id="authTitle">Login</h2>
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button id="authBtn">Login</button>
+    <div class="switch" id="switchAuth">No account? Sign up</div>
   </div>
+</div>
 
-  
+<!-- APP -->
+<div id="app" class="hidden">
+  <div id="sidebar">
+    <h2 style="color:#2fdcdc">Dishanveshi</h2>
+    <button onclick="logout()">Logout</button>
+  </div>
+  <div id="main">
+    <div id="map" style="height:300px;border-radius:12px"></div>
+    <input id="destInput" placeholder="Destination">
+    <button id="newItinBtn">Generate Itinerary</button>
+    <input id="chatText" placeholder="Ask AI">
+    <button id="sendBtn">Send</button>
+    <div id="messages"></div>
+    <div id="savedList"></div>
+  </div>
+</div>
 
-  <!-- FIXED: Correct relative path -->
-  <script src="app.js"></script>
+<script>
+window.APP_CONFIG = {
+  API_BASE: "https://dishanveshi.onrender.com",
+  GOOGLE_MAPS_API_KEY: "PUT_NEW_KEY_HERE"
+};
+</script>
+
+<script src="app.js"></script>
 </body>
 </html>
