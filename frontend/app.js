@@ -1,22 +1,19 @@
 /* =========================================================
-   Dishanveshi Frontend – app.js
-   Stable Production Version
+   Dishanveshi – Frontend app.js (FINAL STABLE VERSION)
    ========================================================= */
 
-document.addEventListener("DOMContentLoaded", startApp);
-
-function startApp() {
-  /* ---------- CONFIG ---------- */
+document.addEventListener("DOMContentLoaded", () => {
+  /* ---------------- CONFIG ---------------- */
   const API_BASE = window.APP_CONFIG?.API_BASE;
   const MAPS_KEY = window.APP_CONFIG?.GOOGLE_MAPS_API_KEY;
 
   if (!API_BASE) {
-    alert("API_BASE missing. Check frontend configuration.");
-    console.error("APP_CONFIG missing API_BASE");
+    alert("API_BASE missing. Check index.html config.");
+    console.error("APP_CONFIG.API_BASE missing");
     return;
   }
 
-  /* ---------- ELEMENTS ---------- */
+  /* ---------------- ELEMENTS ---------------- */
   const loader = document.getElementById("loader");
   const auth = document.getElementById("auth");
   const app = document.getElementById("app");
@@ -32,15 +29,14 @@ function startApp() {
   const sendBtn = document.getElementById("sendBtn");
   const destInput = document.getElementById("destInput");
   const chatText = document.getElementById("chatText");
-
   const messages = document.getElementById("messages");
 
-  /* ---------- STATE ---------- */
+  /* ---------------- STATE ---------------- */
   let token = localStorage.getItem("token");
   let isLogin = true;
   let map = null;
 
-  /* ---------- LOADER SAFE ---------- */
+  /* ---------------- LOADER (SAFE) ---------------- */
   function showLoader() {
     if (loader) loader.classList.remove("hidden");
   }
@@ -49,82 +45,93 @@ function startApp() {
     if (loader) loader.classList.add("hidden");
   }
 
-  /* ---------- VIEW CONTROL ---------- */
+  /* ---------------- VIEW ---------------- */
   function showApp() {
-    auth.classList.add("hidden");
-    app.classList.remove("hidden");
+    auth?.classList.add("hidden");
+    app?.classList.remove("hidden");
   }
 
   function showAuth() {
-    auth.classList.remove("hidden");
-    app.classList.add("hidden");
+    auth?.classList.remove("hidden");
+    app?.classList.add("hidden");
   }
 
   if (token) showApp();
 
-  /* ---------- AUTH SWITCH ---------- */
-  switchAuth.onclick = () => {
-    isLogin = !isLogin;
-    authTitle.innerText = isLogin ? "Login" : "Sign Up";
-    authBtn.innerText = isLogin ? "Login" : "Sign Up";
-    switchAuth.innerText = isLogin
-      ? "No account? Sign up"
-      : "Have account? Login";
-  };
+  /* ---------------- AUTH SWITCH ---------------- */
+  if (switchAuth) {
+    switchAuth.onclick = () => {
+      isLogin = !isLogin;
+      authTitle.innerText = isLogin ? "Login" : "Sign Up";
+      authBtn.innerText = isLogin ? "Login" : "Sign Up";
+      switchAuth.innerText = isLogin
+        ? "No account? Sign up"
+        : "Have account? Login";
+    };
+  }
 
-  /* ---------- LOGIN / SIGNUP ---------- */
-  authBtn.onclick = async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
+  /* ---------------- LOGIN / SIGNUP ---------------- */
+  if (authBtn) {
+    authBtn.onclick = async () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
 
-    if (!email || !password) {
-      alert("Please enter email and password");
-      return;
-    }
-
-    showLoader();
-
-    try {
-      if (isLogin) {
-        /* OAuth2PasswordRequestForm → FORM DATA */
-        const form = new FormData();
-        form.append("username", email);
-        form.append("password", password);
-
-        const res = await fetch(API_BASE + "/api/auth/login", {
-          method: "POST",
-          body: form
-        });
-
-        if (!res.ok) throw new Error("Invalid login");
-
-        const data = await res.json();
-        token = data.access_token;
-        localStorage.setItem("token", token);
-        showApp();
-
-      } else {
-        /* SIGN UP */
-        const res = await fetch(API_BASE + "/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
-
-        if (!res.ok) throw new Error("Signup failed");
-        alert("Signup successful. Please login.");
-        isLogin = true;
-        switchAuth.onclick();
+      if (!email || !password) {
+        alert("Please enter email and password");
+        return;
       }
-    } catch (err) {
-      alert("Authentication failed.");
-      console.error("Auth error:", err);
-    } finally {
-      hideLoader();
-    }
-  };
 
-  /* ---------- AUTH FETCH ---------- */
+      showLoader();
+
+      try {
+        if (isLogin) {
+          /* 🔐 OAuth2PasswordRequestForm (URL-ENCODED) */
+          const params = new URLSearchParams();
+          params.append("username", email);
+          params.append("password", password);
+
+          const res = await fetch(API_BASE + "/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: params.toString()
+          });
+
+          if (!res.ok) {
+            throw new Error("Invalid login");
+          }
+
+          const data = await res.json();
+          token = data.access_token;
+          localStorage.setItem("token", token);
+          showApp();
+        } else {
+          /* SIGN UP */
+          const res = await fetch(API_BASE + "/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+          });
+
+          if (!res.ok) {
+            throw new Error("Signup failed");
+          }
+
+          alert("Signup successful. Please login.");
+          isLogin = true;
+          switchAuth.click();
+        }
+      } catch (err) {
+        alert("Authentication failed.");
+        console.error("Auth error:", err);
+      } finally {
+        hideLoader();
+      }
+    };
+  }
+
+  /* ---------------- AUTH FETCH ---------------- */
   async function api(path, options = {}) {
     showLoader();
     try {
@@ -132,8 +139,8 @@ function startApp() {
         ...options,
         headers: {
           ...(options.headers || {}),
-          Authorization: token ? "Bearer " + token : "",
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          Authorization: token ? "Bearer " + token : ""
         }
       });
 
@@ -148,10 +155,11 @@ function startApp() {
     }
   }
 
-  /* ---------- ITINERARY ---------- */
+  /* ---------------- ITINERARY ---------------- */
   if (newItinBtn) {
     newItinBtn.onclick = async () => {
       const destination = destInput.value || "Pune";
+
       try {
         const data = await api("/api/itinerary", {
           method: "POST",
@@ -166,20 +174,20 @@ function startApp() {
         });
 
         messages.innerHTML = "";
-        data.plan.forEach(d => {
+        data.plan.forEach(day => {
           const div = document.createElement("div");
           div.className = "card";
-          div.innerText = `Day ${d.day}: ${d.summary}`;
+          div.innerText = `Day ${day.day}: ${day.summary}`;
           messages.appendChild(div);
         });
-      } catch (e) {
+      } catch (err) {
         alert("Failed to generate itinerary");
-        console.error(e);
+        console.error(err);
       }
     };
   }
 
-  /* ---------- AI CHAT ---------- */
+  /* ---------------- AI CHAT ---------------- */
   if (sendBtn) {
     sendBtn.onclick = async () => {
       const q = chatText.value.trim();
@@ -188,30 +196,33 @@ function startApp() {
       try {
         const r = await api("/api/ai/recommend", {
           method: "POST",
-          body: JSON.stringify({ mood: "neutral", places_list: q })
+          body: JSON.stringify({
+            mood: "neutral",
+            places_list: q
+          })
         });
 
         const div = document.createElement("div");
         div.className = "card";
         div.innerText = r.recommendation;
         messages.prepend(div);
-      } catch (e) {
+      } catch (err) {
         alert("AI request failed");
-        console.error(e);
+        console.error(err);
       }
     };
   }
 
-  /* ---------- GOOGLE MAPS (SAFE LOAD) ---------- */
+  /* ---------------- GOOGLE MAPS (SAFE) ---------------- */
   if (MAPS_KEY) {
-    const s = document.createElement("script");
-    s.src =
+    const script = document.createElement("script");
+    script.src =
       "https://maps.googleapis.com/maps/api/js?key=" +
       MAPS_KEY +
       "&callback=initMap";
-    s.async = true;
-    s.onerror = () => console.warn("Google Maps failed to load");
-    document.head.appendChild(s);
+    script.async = true;
+    script.onerror = () => console.warn("Google Maps failed to load");
+    document.head.appendChild(script);
   }
 
   window.initMap = function () {
@@ -225,9 +236,9 @@ function startApp() {
     }
   };
 
-  /* ---------- LOGOUT ---------- */
+  /* ---------------- LOGOUT ---------------- */
   window.logout = function () {
     localStorage.removeItem("token");
     location.reload();
   };
-}
+});
