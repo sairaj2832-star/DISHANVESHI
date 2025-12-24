@@ -33,6 +33,10 @@ API_VERSION = "v1.0.0"
 APP_NAME = "Dishanveshi – Travel Intelligence API"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
 
 # ==========================================================
 # LIFESPAN (Startup / Shutdown)
@@ -132,25 +136,20 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-@app.post("/api/auth/login", response_model=schemas.Token)
-async def login(req: LoginRequest, db: AsyncDB):
-    user = await CRUD.get_user_by_email(db, email=req.email)
-    if not user or not await security.verify_password_async(
-    form.password,
-    user.hashed_password
-):
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Incorrect email or password",
-        headers={"WWW-Authenticate": "Bearer"}
-    )
+@app.post("/api/auth/login", response_model=schemas.Token, tags=["auth"])
+async def login(req: LoginRequest):
+    # ===== DEMO LOGIN (SEMESTER PROJECT SAFE) =====
+    if req.email != "demo@dishanveshi.com" or req.password != "demo123":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials"
+        )
 
-    token = security.create_access_token({"sub": user.email})
+    token = security.create_access_token({"sub": req.email})
     return {
         "access_token": token,
         "token_type": "bearer"
     }
-
 
 # ==========================================================
 # AI + PLACES
