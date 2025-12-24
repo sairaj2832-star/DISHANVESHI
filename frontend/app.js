@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ---------------- GOOGLE MAP ---------------- */
   if (MAPS_KEY) {
     const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${AIzaSyAK9_R8cwT6B5ShQP1H9Z91xusDX9Zjtvk}&callback=initMap`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&callback=initMap`;
     s.async = true;
     document.head.appendChild(s);
   }
@@ -136,4 +136,5 @@ document.addEventListener("DOMContentLoaded", () => {
       zoom: 5
     });
   };
+hideLoader();
 });
