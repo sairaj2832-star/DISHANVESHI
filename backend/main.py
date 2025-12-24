@@ -128,23 +128,24 @@ async def register_user(user: schemas.UserCreate, db: AsyncDB):
         raise HTTPException(status_code=400, detail="Email already registered")
     return await CRUD.create_user(db, user)
 
-@app.post("/api/auth/login", response_model=schemas.Token, tags=["auth"])
-async def login(
-    form: Annotated[OAuth2PasswordRequestForm, Depends()],
-    db: AsyncDB
-):
-    user = await CRUD.get_user_by_email(db, email=form.username)
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/auth/login", response_model=schemas.Token)
+async def login(req: LoginRequest, db: AsyncDB):
+    user = await CRUD.get_user_by_email(db, email=req.email)
     if not user or not security.verify_password(
-        form.password, user.hashed_password
+        req.password, user.hashed_password
     ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = security.create_access_token({"sub": user.email})
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token,
+        "token_type": "bearer"
+    }
+
 
 # ==========================================================
 # AI + PLACES
