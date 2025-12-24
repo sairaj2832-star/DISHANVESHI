@@ -83,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ---------------- LOGIN / SIGNUP ---------------- */
   if (authBtn) {
     authBtn.onclick = async () => {
+      e.preventDefault();
       const email = emailInput.value.trim();
       const password = passwordInput.value.trim();
 
